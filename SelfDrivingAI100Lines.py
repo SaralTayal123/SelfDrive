@@ -47,8 +47,8 @@ class Agent:
             Dense(1, activation="linear", name="layer3"),
         ])
         self.model.compile(loss='mean_squared_error', optimizer=Adam(lr=0.05))
-        #self.model.load_weights("selfdrive.h5")
-        # print(self.model.summary())
+        #self.model.load_weights("selfdrive.h5") # use this to import your pretrained weights
+        # print(self.model.summary()) # use this to get a summary of the CNN
         self.cap = cv2.VideoCapture(0) #you might need to tweak this based on your camera
         self.cap.set(3, 320) # you might need to tweak this based on your camera
         self.cap.set(4, 240) #you might need to tweak this based on your camera
