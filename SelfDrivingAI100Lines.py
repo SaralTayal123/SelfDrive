@@ -80,7 +80,7 @@ class Agent:
     def observeAction(self):
         return (self.userSteering + 1) / 2
 
-agent = Agent()  # currently agent is configured with only 2 actions
+agent = Agent() 
 BLYNK_AUTH = 'MGbFmANkyThXj6e36bE0JnPDWK7V84Xy' #insert your blynk code from your blynk project
 blynk = blynklib.Blynk(BLYNK_AUTH)
 
