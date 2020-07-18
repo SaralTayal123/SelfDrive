@@ -74,7 +74,7 @@ class Agent:
         return (self.userSteering + 1) / 2
 
 agent = Agent() 
-BLYNK_AUTH = 'MGbFmANkyThXj6e36bE0JnPDWK7V84Xy' #insert your blynk code from your blynk project
+BLYNK_AUTH = 'insert your code here' #insert your blynk code from your blynk project
 blynk = blynklib.Blynk(BLYNK_AUTH)
 
 @blynk.handle_event('write V4') # We used pin v4 on the blynk app for steering control. Hence 'write V4'
