@@ -23,21 +23,23 @@ motor2Servo.start(8)
 motor1Servo.ChangeDutyCycle(7.5)
 motor2Servo.ChangeDutyCycle(7.5)
 
-def servoControl(value): #substitute this with your motor controller
-    motor1Servo.ChangeDutyCycle(8.5 + value)
-    motor2Servo.ChangeDutyCycle(8.5 - value)
+def servoControl(value):#substitute this with your motor controller
+    motor1Servo.ChangeDutyCycle(7.5 + value)
+    motor2Servo.ChangeDutyCycle(7.5 - value)
 
 class Agent:
     def __init__(self):
+        #This is the actual Neural net
         self.userSteering = 0
         self.aiMode = False
         self.model = Sequential([
-            Conv2D(32, (7, 7), input_shape=(240, 320, 3), strides=(2, 2), activation='relu', padding='same'),
-            MaxPooling2D(pool_size=(5, 5), strides=(2, 2), padding='valid'),
-            Conv2D(64, (4, 4), activation='relu', strides=(1, 1), padding='same'),
-            MaxPooling2D(pool_size=(4, 4), strides=(2, 2), padding='valid'),
-            Conv2D(128, (4, 4), strides=(1, 1), activation='relu', padding='same'),
-            MaxPooling2D(pool_size=(5, 5), strides=(3, 3), padding='valid'),
+            Conv2D(32, (7,7), input_shape=(240, 320, 3),
+                   strides=(2, 2), activation='relu', padding = 'same'),
+            MaxPooling2D(pool_size=(5,5), strides=(2, 2), padding= 'valid'),
+            Conv2D(64, (4, 4), activation='relu', strides=(1, 1), padding = 'same'),
+            MaxPooling2D(pool_size=(4,4), strides=(2,2), padding= 'valid'),
+            Conv2D(128, (4,4), strides=(1, 1), activation='relu', padding = 'same'),
+            MaxPooling2D(pool_size=(5, 5), strides=(3, 3),padding = 'valid'),
             Flatten(),
             Dense(384, activation='relu'),
             Dense(64, activation="relu", name="layer1"),
@@ -45,7 +47,8 @@ class Agent:
             Dense(1, activation="linear", name="layer3"),
         ])
         self.model.compile(loss='mean_squared_error', optimizer=Adam(lr=0.05))
-        self.model.load_weights("selfdrive.h5")
+        #self.model.load_weights("selfdrive.h5")
+        # print(self.model.summary())
         self.cap = cv2.VideoCapture(0) #you might need to tweak this based on your camera
         self.cap.set(3, 320) # you might need to tweak this based on your camera
         self.cap.set(4, 240) #you might need to tweak this based on your camera
@@ -53,23 +56,26 @@ class Agent:
     def act(self, state):
         state = np.reshape(state, (1, 240, 320, 3))
         action = self.model.predict(state)[0][0]
-        servoControl((action * 2) - 1)
-        return (action * 2) - 1
+        action = (action * 2) - 1
+        servoControl(action)
+        return action
 
     def learn(self, state, action):
-        state = np.reshape(state, (1, 240, 320, 3))
+        state = np.reshape(state, (1, 240,320,3))
         history = self.model.fit(
             state, [action], batch_size=1, epochs=1, verbose=0)
-        print("LOSS: ", history.history.get("loss")[0])
+        loss = history.history.get("loss")[0]
+        print("LOSS: ", loss)
 
     def _processImg(self, img):
-        return np.reshape(img, (240, 320, 3)) / 255
+        img = np.reshape(img, (240, 320, 3)) / 255
+        return img
 
     def getState(self):
         ret, frame = self.cap.read()
         pic = np.array(frame)
         processedImg = self._processImg(pic)
-        return processedImg
+        return processedImg 
 
     def observeAction(self):
         return (self.userSteering + 1) / 2
@@ -80,32 +86,37 @@ blynk = blynklib.Blynk(BLYNK_AUTH)
 
 @blynk.handle_event('write V4')
 def write_virtual_pin_handler(pin, value):
-    print("value: ", float(value[0]))
+    print("value: ",float(value[0])) 
     agent.userSteering = float(value[0])
     servoControl(float(value[0]))
 
 @blynk.handle_event('write V2')
 def write_virtual_pin_handler(pin, value):
-    if value == 1:
+    if value == 1: 
         agent.aiMode = False
-    else:
+    else: 
         agent.aiMode = True
 
-while True:  
+counter = 0
+while True: 
     blynk.run()
     if agent.aiMode == False:
         start = time.time()
         state = agent.getState()
         action = agent.observeAction()
-        if action >= 0:  # if its a valid action
-            start = time.time()
-            agent.learn(state, action)
-            agent.model.save_weights("selfdrive.h5")
+        if action >= 0: #if its a valid action
+            counter += 1
+            if counter % 1 == 0:
+                start = time.time()
+                agent.learn(state, action)
+                agent.memory = []
+            if counter % 50 == 0:   
+               agent.model.save_weights("selfdrive.h5")
         print("framerate: ", 1/(time.time() - start))
     else:
         while agent.aiMode == True:
-            start = time.time()
+            start = time.time() 
             state = agent.getState()
             action = agent.act(state)
-            print("AI-action", action)
+            print("action", action)
             print("framerate: ", 1/(time.time() - start))
